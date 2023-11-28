@@ -30,13 +30,18 @@ const HASH_VOICE_CHECKSUM_HASH_T: [u16; 256] = [
 ///
 /// Be aware that the example impl returns case sensitive results so be careful if your Lot Code could be mixed case.
 ///
-/// # Example for GTIN 61414100734933 and Lot 32abcd with pack date 2003-01-02
+/// for GTIN 61414100734933 and Lot 32abcd with pack date 2003-01-02
 ///
+/// # Example
 /// ```
-/// let voice_code = voicecode::HashVoiceCode::new("12345678901244", "LOT123", "01", "02", "03").unwrap();
+/// let mm = "01";
+/// let dd = "02";
+/// let yy = "03";
+/// let voice_code = voicecode::HashVoiceCode::new("12345678901244", "LOT123", yy, mm, dd).unwrap();
 /// println!("Voice Code: {}", voice_code.voice_code); // expects 6991
 /// println!("Minor: {}", voice_code.voice_code_minor); // expects 69
 /// println!("Major: {}", voice_code.voice_code_major); // expects 91
+/// assert_eq!(voice_code.voice_code, "6991");
 /// ```
 pub struct HashVoiceCode {
     pub hash_text: String,
@@ -61,12 +66,21 @@ impl HashVoiceCode {
     ///
     /// # Example
     /// ```
-    /// let voice_code = voicecode::HashVoiceCode::new("12345678901244", "LOT123", "01", "02", "03").unwrap();
+    /// let mm = "01";
+    /// let dd = "02";
+    /// let yy = "03";
+    /// let voice_code = voicecode::HashVoiceCode::new("12345678901244", "LOT123", yy, mm, dd).unwrap();
     /// println!("Voice Code: {}", voice_code.voice_code); // expects 6991
     /// println!("Minor: {}", voice_code.voice_code_minor); // expects 69
     /// println!("Major: {}", voice_code.voice_code_major); // expects 91
+    ///
+    /// assert_eq!(voice_code.voice_code, "6991");
     /// ```
-    pub fn new(gtin: &str, lot: &str, pack_date_mm: &str, pack_date_dd: &str, pack_date_yy: &str) -> Result<Self, &'static str> {
+    pub fn new(gtin: &str, lot: &str, pack_date_yy: &str, pack_date_mm: &str, pack_date_dd: &str) -> Result<Self, &'static str> {
+        if !pack_date_yy.chars().all(char::is_numeric) || pack_date_yy.len() > 2 || pack_date_yy.len() < 1 {
+            return Err("Date component YY must be numeric and 1 or 2 digits");
+        }
+
         if !pack_date_mm.chars().all(char::is_numeric) || pack_date_mm.len() > 2 || pack_date_mm.len() < 1 {
             return Err("Date component MM must be numeric and 1 or 2 digits");
         }
@@ -75,34 +89,18 @@ impl HashVoiceCode {
             return Err("Date component DD must be numeric and 1 or 2 digits");
         }
 
-        if !pack_date_yy.chars().all(char::is_numeric) || pack_date_yy.len() > 2 || pack_date_yy.len() < 1 {
-            return Err("Date component YY must be numeric and 1 or 2 digits");
-        }
-
         if !Self::validate_lot(lot) {
             // note - gs1 codes use (xx)data to indicate various kinds of data, allowing parens should probably not be allowed
-            return Err("LOT must be alphanumeric and/or !, \", %, &, ', (, ), *, +, -, ., /, :, ;, <, =, >, ?, _ and comma");
+            return Err(r##"LOT must be alphanumeric and/or !, ", %, &, ', (, ), *, +, -, ., /, :, ;, <, =, >, ?, _ and comma"##);
         }
 
         if !Self::validate_gtin(gtin) {
             return Err("GTIN must be numeric 14 digits");
         }
 
+        let yy = format!("{:0>2}", pack_date_yy);
         let mm = format!("{:0>2}", pack_date_mm);
         let dd = format!("{:0>2}", pack_date_dd);
-        let yy = format!("{:0>2}", pack_date_yy);
-
-        if mm.len() != 2 {
-            return Err("Invalid mm date format");
-        }
-
-        if dd.len() != 2 {
-            return Err("Invalid dd date format");
-        }
-
-        if yy.len() != 2 {
-            return Err("Invalid yy date format");
-        }
 
         let hash_text = format!("{}{}{}{}{}", gtin, lot, pack_date_yy, pack_date_mm, pack_date_dd);
         let voice_code = HashVoiceCode::generate_voice_code_hash(&hash_text);
@@ -116,6 +114,36 @@ impl HashVoiceCode {
             voice_code_major: voice_code[2..].to_string(),
             voice_code_minor: voice_code[..2].to_string(),
         })
+    }
+
+    /// Create a new HashVoiceCode struct with date mm, dd and yy provided from NaiveDate
+    ///
+    /// # Example
+    /// ```
+    /// let pack_date = chrono::NaiveDate::from_ymd_opt(2003, 1, 2);
+    /// match pack_date {
+    ///    Some(pack_date) => {
+    ///       let voice_code = voicecode::HashVoiceCode::new_naive("12345678901244", "LOT123", pack_date).unwrap();
+    ///       println!("Voice Code: {}", voice_code.voice_code); // expects 6991
+    ///       println!("Minor: {}", voice_code.voice_code_minor); // expects 69
+    ///       println!("Major: {}", voice_code.voice_code_major); // expects 91
+    ///
+    ///       assert_eq!(voice_code.voice_code, "6991");
+    ///    },
+    ///    None => {
+    ///       println!("Invalid date");
+    ///       assert!(false);
+    ///    }
+    /// }
+    ///
+    /// ```
+    #[allow(dead_code)]
+    pub fn new_naive(gtin: &str, lot: &str, pack_date: NaiveDate) -> Result<Self, &'static str> {
+        let date_yy = pack_date.format("%y").to_string();
+        let date_mm = pack_date.format("%m").to_string();
+        let date_dd = pack_date.format("%d").to_string();
+
+        Self::new(gtin, lot, &date_yy, &date_mm, &date_dd)
     }
 
     /// Validate a LOT string
@@ -139,43 +167,16 @@ impl HashVoiceCode {
         return gtin.chars().all(char::is_numeric) || gtin.len() != 14
     }
 
-    /// Create a new HashVoiceCode struct with date mm, dd and yy provided from NaiveDate
-    ///
-    /// # Example
-    /// ```
-    /// let pack_date = chrono::NaiveDate::from_ymd_opt(2003, 1, 2);
-    /// match pack_date {
-    ///    Some(pack_date) => {
-    ///       let voice_code = voicecode::HashVoiceCode::new_naive("12345678901244", "LOT123", pack_date).unwrap();
-    ///       println!("Voice Code: {}", voice_code.voice_code); // expects 6991
-    ///       println!("Minor: {}", voice_code.voice_code_minor); // expects 69
-    ///       println!("Major: {}", voice_code.voice_code_major); // expects 91
-    ///    },
-    ///    None => {
-    ///       println!("Invalid date");
-    ///    }
-    /// }
-    ///
-    /// ```
-    #[allow(dead_code)]
-    pub fn new_naive(gtin: &str, lot: &str, pack_date: NaiveDate) -> Result<Self, &'static str> {
-        let date_yy = pack_date.format("%y").to_string();
-        let date_mm = pack_date.format("%m").to_string();
-        let date_dd = pack_date.format("%d").to_string();
-
-        Self::new(gtin, lot, &date_mm, &date_dd, &date_yy)
-    }
-
     ///
     /// Generate a voice code text from a string parts, for free form input
     ///
     ///
     /// # Example
     /// ```
-    /// let voice_code = voicecode::HashVoiceCode::generate_voice_code_text("a", "b", "cc", "dd", "ee");
-    /// assert_eq!(voice_code, "abeeccdd");
+    /// let voice_code = voicecode::HashVoiceCode::generate_voice_code_text("a", "b", "yy", "m", "dd");
+    /// assert_eq!(voice_code, "abyy0mdd");
     /// ```
-    pub fn generate_voice_code_text(gtin: &str, lot: &str, pack_date_mm: &str, pack_date_dd: &str, pack_date_yy: &str) -> String {
+    pub fn generate_voice_code_text(gtin: &str, lot: &str, pack_date_yy: &str, pack_date_mm: &str, pack_date_dd: &str) -> String {
         format!("{}{}{:0>2}{:0>2}{:0>2}", gtin, lot, pack_date_yy, pack_date_mm, pack_date_dd)
     }
 
@@ -190,7 +191,10 @@ impl HashVoiceCode {
     /// ```
     /// let input_lot = "LOT123";
     /// let input_gtin = "12345678901244";
-    /// let input_text = format!("{}{}{:0>2}{:0>2}{:0>2}", input_gtin, input_lot, "03", "01", "02");
+    /// let mm = "01";
+    /// let dd = "02";
+    /// let yy = "03";
+    /// let input_text = format!("{}{}{:0>2}{:0>2}{:0>2}", input_gtin, input_lot, yy, mm, dd);
     /// let voice_code = voicecode::HashVoiceCode::generate_voice_code_hash(&input_text);
     /// println!("Voice Code: {}", voice_code); // expects 6991
     /// assert_eq!(voice_code, "6991");
@@ -244,11 +248,11 @@ mod tests {
 
         let gtin = "61414100734933";
         let lot = "32ABCD";
+        let pack_date_yy = "01";
         let pack_date_mm = "01";
         let pack_date_dd = "01";
-        let pack_date_yy = "01";
 
-        let hash_voice_code = HashVoiceCode::new(gtin, lot, pack_date_mm, pack_date_dd, pack_date_yy).unwrap();
+        let hash_voice_code = HashVoiceCode::new(gtin, lot, pack_date_yy, pack_date_mm, pack_date_dd).unwrap();
 
         assert_eq!(hash_voice_code.voice_code, "1085");
         assert_eq!(hash_voice_code.voice_code_minor, "10");
@@ -261,11 +265,11 @@ mod tests {
 
         let gtin = "61414100734933";
         let lot = "32abcd";
+        let pack_date_yy = "03";
         let pack_date_mm = "01";
         let pack_date_dd = "02";
-        let pack_date_yy = "03";
 
-        let hash_voice_code = HashVoiceCode::new(gtin, lot, pack_date_mm, pack_date_dd, pack_date_yy).unwrap();
+        let hash_voice_code = HashVoiceCode::new(gtin, lot, pack_date_yy, pack_date_mm, pack_date_dd).unwrap();
 
         assert_eq!(hash_voice_code.voice_code, "8079");
         assert_eq!(hash_voice_code.voice_code_minor, "80");
@@ -276,11 +280,11 @@ mod tests {
     fn test3() {
         let gtin = "61414100734933";
         let lot = "32abcd";
+        let pack_date_yy = "03";
         let pack_date_mm = "01";
         let pack_date_dd = "02";
-        let pack_date_yy = "03";
 
-        let hash_voice_code = HashVoiceCode::new(gtin, lot, pack_date_mm, pack_date_dd, pack_date_yy).unwrap();
+        let hash_voice_code = HashVoiceCode::new(gtin, lot, pack_date_yy, pack_date_mm, pack_date_dd).unwrap();
 
         assert_ne!(hash_voice_code.voice_code, "9190");
         assert_ne!(hash_voice_code.voice_code_minor, "91");
@@ -289,19 +293,19 @@ mod tests {
 
     #[test]
     fn test_invalid_month() {
-        let result = HashVoiceCode::new("61414100734933", "32abcd", "ab", "02", "03");
+        let result = HashVoiceCode::new("61414100734933", "32abcd", "03", "mm", "03");
         assert!(result.is_err());
     }
 
     #[test]
     fn test_invalid_day() {
-        let result = HashVoiceCode::new("61414100734933", "32abcd", "01", "zz", "03");
+        let result = HashVoiceCode::new("61414100734933", "32abcd", "03", "02", "dd");
         assert!(result.is_err());
     }
 
     #[test]
     fn test_invalid_year() {
-        let result = HashVoiceCode::new("61414100734933", "32abcd", "01", "02", "zz");
+        let result = HashVoiceCode::new("61414100734933", "32abcd", "yy", "01", "02");
         assert!(result.is_err());
     }
 
