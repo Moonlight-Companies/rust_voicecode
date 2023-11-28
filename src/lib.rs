@@ -1,7 +1,24 @@
-#[cfg(feature = "naive_date")]
 use chrono::NaiveDate;
+use regex::Regex;
 
-const HASH_VOICE_CHECKSUM_HASH_T: [u16; 256] = [ 0, 49345, 49537, 320, 49921, 960, 640, 49729, 50689, 1728, 1920, 51009, 1280, 50625, 50305, 1088, 52225, 3264, 3456, 52545, 3840, 53185, 52865, 3648, 2560, 51905, 52097, 2880, 51457, 2496, 2176, 51265, 55297, 6336, 6528, 55617, 6912, 56257, 55937, 6720, 7680, 57025, 57217, 8000, 56577, 7616, 7296, 56385, 5120, 54465, 54657, 5440, 55041, 6080, 5760, 54849, 53761, 4800, 4992, 54081, 4352, 53697, 53377, 4160, 61441, 12480, 12672, 61761, 13056, 62401, 62081, 12864, 13824, 63169, 63361, 14144, 62721, 13760, 13440, 62529, 15360, 64705, 64897, 15680, 65281, 16320, 16000, 65089, 64001, 15040, 15232, 64321, 14592, 63937, 63617, 14400, 10240, 59585, 59777, 10560, 60161, 11200, 10880, 59969, 60929, 11968, 12160, 61249, 11520, 60865, 60545, 11328, 58369, 9408, 9600, 58689, 9984, 59329, 59009, 9792, 8704, 58049, 58241, 9024, 57601, 8640, 8320, 57409, 40961, 24768, 24960, 41281, 25344, 41921, 41601, 25152, 26112, 42689, 42881, 26432, 42241, 26048, 25728, 42049, 27648, 44225, 44417, 27968, 44801, 28608, 28288, 44609, 43521, 27328, 27520, 43841, 26880, 43457, 43137, 26688, 30720, 47297, 47489, 31040, 47873, 31680, 31360, 47681, 48641, 32448, 32640, 48961, 32000, 48577, 48257, 31808, 46081, 29888, 30080, 46401, 30464, 47041, 46721, 30272, 29184, 45761, 45953, 29504, 45313, 29120, 28800, 45121, 20480, 37057, 37249, 20800, 37633, 21440, 21120, 37441, 38401, 22208, 22400, 38721, 21760, 38337, 38017, 21568, 39937, 23744, 23936, 40257, 24320, 40897, 40577, 24128, 23040, 39617, 39809, 23360, 39169, 22976, 22656, 38977, 34817, 18624, 18816, 35137, 19200, 35777, 35457, 19008, 19968, 36545, 36737, 20288, 36097, 19904, 19584, 35905, 17408, 33985, 34177, 17728, 34561, 18368, 18048, 34369, 33281, 17088, 17280, 33601, 16640, 33217, 32897, 16448 ];
+const HASH_VOICE_CHECKSUM_HASH_T: [u16; 256] = [
+    0x0000, 0xc0c1, 0xc181, 0x0140, 0xc301, 0x03c0, 0x0280, 0xc241, 0xc601, 0x06c0, 0x0780, 0xc741, 0x0500, 0xc5c1, 0xc481, 0x0440,
+    0xcc01, 0x0cc0, 0x0d80, 0xcd41, 0x0f00, 0xcfc1, 0xce81, 0x0e40, 0x0a00, 0xcac1, 0xcb81, 0x0b40, 0xc901, 0x09c0, 0x0880, 0xc841,
+    0xd801, 0x18c0, 0x1980, 0xd941, 0x1b00, 0xdbc1, 0xda81, 0x1a40, 0x1e00, 0xdec1, 0xdf81, 0x1f40, 0xdd01, 0x1dc0, 0x1c80, 0xdc41,
+    0x1400, 0xd4c1, 0xd581, 0x1540, 0xd701, 0x17c0, 0x1680, 0xd641, 0xd201, 0x12c0, 0x1380, 0xd341, 0x1100, 0xd1c1, 0xd081, 0x1040,
+    0xf001, 0x30c0, 0x3180, 0xf141, 0x3300, 0xf3c1, 0xf281, 0x3240, 0x3600, 0xf6c1, 0xf781, 0x3740, 0xf501, 0x35c0, 0x3480, 0xf441,
+    0x3c00, 0xfcc1, 0xfd81, 0x3d40, 0xff01, 0x3fc0, 0x3e80, 0xfe41, 0xfa01, 0x3ac0, 0x3b80, 0xfb41, 0x3900, 0xf9c1, 0xf881, 0x3840,
+    0x2800, 0xe8c1, 0xe981, 0x2940, 0xeb01, 0x2bc0, 0x2a80, 0xea41, 0xee01, 0x2ec0, 0x2f80, 0xef41, 0x2d00, 0xedc1, 0xec81, 0x2c40,
+    0xe401, 0x24c0, 0x2580, 0xe541, 0x2700, 0xe7c1, 0xe681, 0x2640, 0x2200, 0xe2c1, 0xe381, 0x2340, 0xe101, 0x21c0, 0x2080, 0xe041,
+    0xa001, 0x60c0, 0x6180, 0xa141, 0x6300, 0xa3c1, 0xa281, 0x6240, 0x6600, 0xa6c1, 0xa781, 0x6740, 0xa501, 0x65c0, 0x6480, 0xa441,
+    0x6c00, 0xacc1, 0xad81, 0x6d40, 0xaf01, 0x6fc0, 0x6e80, 0xae41, 0xaa01, 0x6ac0, 0x6b80, 0xab41, 0x6900, 0xa9c1, 0xa881, 0x6840,
+    0x7800, 0xb8c1, 0xb981, 0x7940, 0xbb01, 0x7bc0, 0x7a80, 0xba41, 0xbe01, 0x7ec0, 0x7f80, 0xbf41, 0x7d00, 0xbdc1, 0xbc81, 0x7c40,
+    0xb401, 0x74c0, 0x7580, 0xb541, 0x7700, 0xb7c1, 0xb681, 0x7640, 0x7200, 0xb2c1, 0xb381, 0x7340, 0xb101, 0x71c0, 0x7080, 0xb041,
+    0x5000, 0x90c1, 0x9181, 0x5140, 0x9301, 0x53c0, 0x5280, 0x9241, 0x9601, 0x56c0, 0x5780, 0x9741, 0x5500, 0x95c1, 0x9481, 0x5440,
+    0x9c01, 0x5cc0, 0x5d80, 0x9d41, 0x5f00, 0x9fc1, 0x9e81, 0x5e40, 0x5a00, 0x9ac1, 0x9b81, 0x5b40, 0x9901, 0x59c0, 0x5880, 0x9841,
+    0x8801, 0x48c0, 0x4980, 0x8941, 0x4b00, 0x8bc1, 0x8a81, 0x4a40, 0x4e00, 0x8ec1, 0x8f81, 0x4f40, 0x8d01, 0x4dc0, 0x4c80, 0x8c41,
+    0x4400, 0x84c1, 0x8581, 0x4540, 0x8701, 0x47c0, 0x4680, 0x8641, 0x8201, 0x42c0, 0x4380, 0x8341, 0x4100, 0x81c1, 0x8081, 0x4040,
+];
 
 #[allow(dead_code)]
 /// Represents a voice code hasher for Produce Traceability Initiative (PTI)
@@ -18,8 +35,8 @@ const HASH_VOICE_CHECKSUM_HASH_T: [u16; 256] = [ 0, 49345, 49537, 320, 49921, 96
 /// ```
 /// let voice_code = voicecode::HashVoiceCode::new("12345678901244", "LOT123", "01", "02", "03").unwrap();
 /// println!("Voice Code: {}", voice_code.voice_code); // expects 6991
-/// println!("Major: {}", voice_code.voice_code_major); // expects 69
-/// println!("Minor: {}", voice_code.voice_code_minor); // expects 91
+/// println!("Minor: {}", voice_code.voice_code_minor); // expects 69
+/// println!("Major: {}", voice_code.voice_code_major); // expects 91
 /// ```
 pub struct HashVoiceCode {
     pub hash_text: String,
@@ -46,23 +63,28 @@ impl HashVoiceCode {
     /// ```
     /// let voice_code = voicecode::HashVoiceCode::new("12345678901244", "LOT123", "01", "02", "03").unwrap();
     /// println!("Voice Code: {}", voice_code.voice_code); // expects 6991
-    /// println!("Major: {}", voice_code.voice_code_major); // expects 69
-    /// println!("Minor: {}", voice_code.voice_code_minor); // expects 91
+    /// println!("Minor: {}", voice_code.voice_code_minor); // expects 69
+    /// println!("Major: {}", voice_code.voice_code_major); // expects 91
     /// ```
     pub fn new(gtin: &str, lot: &str, pack_date_mm: &str, pack_date_dd: &str, pack_date_yy: &str) -> Result<Self, &'static str> {
-        if !pack_date_mm.chars().all(char::is_numeric) {
-            return Err("Date component MM must be numeric");
+        if !pack_date_mm.chars().all(char::is_numeric) || pack_date_mm.len() > 2 || pack_date_mm.len() < 1 {
+            return Err("Date component MM must be numeric and 1 or 2 digits");
         }
 
-        if !pack_date_dd.chars().all(char::is_numeric) {
-            return Err("Date component DD must be numeric");
+        if !pack_date_dd.chars().all(char::is_numeric) || pack_date_dd.len() > 2 || pack_date_dd.len() < 1 {
+            return Err("Date component DD must be numeric and 1 or 2 digits");
         }
 
-        if !pack_date_yy.chars().all(char::is_numeric) {
-            return Err("Date component YY must be numeric");
+        if !pack_date_yy.chars().all(char::is_numeric) || pack_date_yy.len() > 2 || pack_date_yy.len() < 1 {
+            return Err("Date component YY must be numeric and 1 or 2 digits");
         }
 
-        if !gtin.chars().all(char::is_numeric) || gtin.len() != 14 {
+        if !Self::validate_lot(lot) {
+            // note - gs1 codes use (xx)data to indicate various kinds of data, allowing parens should probably not be allowed
+            return Err("LOT must be alphanumeric and/or !, \", %, &, ', (, ), *, +, -, ., /, :, ;, <, =, >, ?, _ and comma");
+        }
+
+        if !Self::validate_gtin(gtin) {
             return Err("GTIN must be numeric 14 digits");
         }
 
@@ -83,7 +105,7 @@ impl HashVoiceCode {
         }
 
         let hash_text = format!("{}{}{}{}{}", gtin, lot, pack_date_yy, pack_date_mm, pack_date_dd);
-        let voice_code = generate_voice_code_hash(&hash_text);
+        let voice_code = HashVoiceCode::generate_voice_code_hash(&hash_text);
 
         Ok(HashVoiceCode {
             hash_text,
@@ -91,17 +113,33 @@ impl HashVoiceCode {
             lot: lot.to_string(),
             pack_date: format!("{}{}{}", yy, mm, dd),
             voice_code: voice_code.clone(),
-            voice_code_major: voice_code[..2].to_string(),
-            voice_code_minor: voice_code[2..].to_string(),
+            voice_code_major: voice_code[2..].to_string(),
+            voice_code_minor: voice_code[..2].to_string(),
         })
     }
 
+    /// Validate a LOT string
+    /// # Example
+    /// ```
+    /// let lot = "55ABFC";
+    /// assert!(voicecode::HashVoiceCode::validate_lot(lot));
+    /// ```
+    pub fn validate_lot(lot: &str) -> bool {
+        let re = Regex::new(r##"^[\!"%&'()\*\+,\-\./0-9:;<=>\?A-Z_a-z]{1,20}$"##).unwrap();
+        re.is_match(lot)
+    }
+
+    /// Validate a GTIN string
+    /// # Example
+    /// ```
+    /// let gtin = "12345678901244";
+    /// assert!(voicecode::HashVoiceCode::validate_gtin(gtin));
+    /// ```
+    pub fn validate_gtin(gtin: &str) -> bool {
+        return gtin.chars().all(char::is_numeric) || gtin.len() != 14
+    }
+
     /// Create a new HashVoiceCode struct with date mm, dd and yy provided from NaiveDate
-    /// if your unsure of the date format you should use this method
-    ///
-    /// Caller should provide format!("{}{}{}{}{}", gtin, lot, pack_date_yy, pack_date_mm, pack_date_dd);
-    ///
-    /// pack_date_XX is a two digit string for month, day and year
     ///
     /// # Example
     /// ```
@@ -110,8 +148,8 @@ impl HashVoiceCode {
     ///    Some(pack_date) => {
     ///       let voice_code = voicecode::HashVoiceCode::new_naive("12345678901244", "LOT123", pack_date).unwrap();
     ///       println!("Voice Code: {}", voice_code.voice_code); // expects 6991
-    ///       println!("Major: {}", voice_code.voice_code_major); // expects 69
-    ///       println!("Minor: {}", voice_code.voice_code_minor); // expects 91
+    ///       println!("Minor: {}", voice_code.voice_code_minor); // expects 69
+    ///       println!("Major: {}", voice_code.voice_code_major); // expects 91
     ///    },
     ///    None => {
     ///       println!("Invalid date");
@@ -119,7 +157,6 @@ impl HashVoiceCode {
     /// }
     ///
     /// ```
-    #[cfg(feature = "naive_date")]
     #[allow(dead_code)]
     pub fn new_naive(gtin: &str, lot: &str, pack_date: NaiveDate) -> Result<Self, &'static str> {
         let date_yy = pack_date.format("%y").to_string();
@@ -128,31 +165,49 @@ impl HashVoiceCode {
 
         Self::new(gtin, lot, &date_mm, &date_dd, &date_yy)
     }
-}
 
-///
-/// Generate a voice code hash from a string
-/// # Example
-/// ```
-/// let voice_code = voicecode::generate_voice_code_hash("12345678901244LOT123030102");
-/// println!("Voice Code: {}", voice_code); // expects 6991
-/// ```
-pub fn generate_voice_code_hash(input: &str) -> String {
-    let mut output: u16 = 0;
-    for ch in input.chars() {
-        output = (output >> 8) ^ HASH_VOICE_CHECKSUM_HASH_T[((output ^ (ch as u16)) % 256) as usize];
+    ///
+    /// Generate a voice code text from a string parts, for free form input
+    ///
+    ///
+    /// # Example
+    /// ```
+    /// let voice_code = voicecode::HashVoiceCode::generate_voice_code_text("a", "b", "cc", "dd", "ee");
+    /// assert_eq!(voice_code, "abeeccdd");
+    /// ```
+    pub fn generate_voice_code_text(gtin: &str, lot: &str, pack_date_mm: &str, pack_date_dd: &str, pack_date_yy: &str) -> String {
+        format!("{}{}{:0>2}{:0>2}{:0>2}", gtin, lot, pack_date_yy, pack_date_mm, pack_date_dd)
     }
-    format!("{:04}", output % 10000)
+
+    ///
+    /// Generate a voice code hash from a string
+    ///
+    /// Caller should provide format!("{}{}{}{}{}", gtin, lot, pack_date_yy, pack_date_mm, pack_date_dd);
+    ///
+    /// pack_date_XX is a two digit string for month, day and year
+    ///
+    /// # Example
+    /// ```
+    /// let input_lot = "LOT123";
+    /// let input_gtin = "12345678901244";
+    /// let input_text = format!("{}{}{:0>2}{:0>2}{:0>2}", input_gtin, input_lot, "03", "01", "02");
+    /// let voice_code = voicecode::HashVoiceCode::generate_voice_code_hash(&input_text);
+    /// println!("Voice Code: {}", voice_code); // expects 6991
+    /// assert_eq!(voice_code, "6991");
+    /// ```
+    pub fn generate_voice_code_hash(input: &str) -> String {
+        let mut output: u16 = 0;
+        for ch in input.chars() {
+            output = (output >> 8) ^ HASH_VOICE_CHECKSUM_HASH_T[((output ^ (ch as u16)) % 256) as usize];
+        }
+        format!("{:04}", output % 10000)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[cfg(feature = "naive_date")]
-    use chrono::NaiveDate;
-
-    #[cfg(feature = "naive_date")]
     fn parse_date(input: &str) -> Result<NaiveDate, chrono::format::ParseError> {
         let formats = vec!["%m/%d/%Y", "%m%d%Y", "%Y-%m-%d", "%+"];
         for format in formats {
@@ -166,11 +221,10 @@ mod tests {
     #[test]
     fn test_hash_voice_code_string() {
         // raw hash test
-        let voice_code = generate_voice_code_hash("12345678901244LOT123030102");
+        let voice_code = HashVoiceCode::generate_voice_code_hash("12345678901244LOT123030102");
         assert_eq!(voice_code, "6991");
     }
 
-    #[cfg(feature = "naive_date")]
     #[test]
     fn test_naive_date() {
         let gtin = "61414100734933";
@@ -180,8 +234,8 @@ mod tests {
         let hash_voice_code = HashVoiceCode::new_naive(gtin, lot, pack_date).unwrap();
 
         assert_eq!(hash_voice_code.voice_code, "1085");
-        assert_eq!(hash_voice_code.voice_code_major, "10");
-        assert_eq!(hash_voice_code.voice_code_minor, "85");
+        assert_eq!(hash_voice_code.voice_code_minor, "10");
+        assert_eq!(hash_voice_code.voice_code_major, "85");
     }
 
     #[test]
@@ -197,8 +251,8 @@ mod tests {
         let hash_voice_code = HashVoiceCode::new(gtin, lot, pack_date_mm, pack_date_dd, pack_date_yy).unwrap();
 
         assert_eq!(hash_voice_code.voice_code, "1085");
-        assert_eq!(hash_voice_code.voice_code_major, "10");
-        assert_eq!(hash_voice_code.voice_code_minor, "85");
+        assert_eq!(hash_voice_code.voice_code_minor, "10");
+        assert_eq!(hash_voice_code.voice_code_major, "85");
     }
 
     #[test]
@@ -214,8 +268,8 @@ mod tests {
         let hash_voice_code = HashVoiceCode::new(gtin, lot, pack_date_mm, pack_date_dd, pack_date_yy).unwrap();
 
         assert_eq!(hash_voice_code.voice_code, "8079");
-        assert_eq!(hash_voice_code.voice_code_major, "80");
-        assert_eq!(hash_voice_code.voice_code_minor, "79");
+        assert_eq!(hash_voice_code.voice_code_minor, "80");
+        assert_eq!(hash_voice_code.voice_code_major, "79");
     }
 
     #[test]
@@ -229,8 +283,8 @@ mod tests {
         let hash_voice_code = HashVoiceCode::new(gtin, lot, pack_date_mm, pack_date_dd, pack_date_yy).unwrap();
 
         assert_ne!(hash_voice_code.voice_code, "9190");
-        assert_ne!(hash_voice_code.voice_code_major, "91");
-        assert_ne!(hash_voice_code.voice_code_minor, "90");
+        assert_ne!(hash_voice_code.voice_code_minor, "91");
+        assert_ne!(hash_voice_code.voice_code_major, "90");
     }
 
     #[test]
