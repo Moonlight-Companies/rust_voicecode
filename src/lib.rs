@@ -105,11 +105,19 @@ impl HashVoiceCode {
     ///
     /// # Example
     /// ```
-    /// let pack_date = chrono::NaiveDate::from_ymd(2003, 1, 2);
-    /// let voice_code = voicecode::HashVoiceCode::new_naive("12345678901244", "LOT123", pack_date).unwrap();
-    /// println!("Voice Code: {}", voice_code.voice_code); // expects 6991
-    /// println!("Major: {}", voice_code.voice_code_major); // expects 69
-    /// println!("Minor: {}", voice_code.voice_code_minor); // expects 91
+    /// let pack_date = chrono::NaiveDate::from_ymd_opt(2003, 1, 2);
+    /// match pack_date {
+    ///    Some(pack_date) => {
+    ///       let voice_code = voicecode::HashVoiceCode::new_naive("12345678901244", "LOT123", pack_date).unwrap();
+    ///       println!("Voice Code: {}", voice_code.voice_code); // expects 6991
+    ///       println!("Major: {}", voice_code.voice_code_major); // expects 69
+    ///       println!("Minor: {}", voice_code.voice_code_minor); // expects 91
+    ///    },
+    ///    None => {
+    ///       println!("Invalid date");
+    ///    }
+    /// }
+    ///
     /// ```
     #[cfg(feature = "naive_date")]
     #[allow(dead_code)]
