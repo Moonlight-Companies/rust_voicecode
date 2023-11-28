@@ -16,10 +16,10 @@ const HASH_VOICE_CHECKSUM_HASH_T: [u16; 256] = [ 0, 49345, 49537, 320, 49921, 96
 /// # Example for GTIN 61414100734933 and Lot 32abcd with pack date 2003-01-02
 ///
 /// ```
-/// let voice_code = voicecode::HashVoiceCode::new("123456789012", "LOT123", "01", "02", "03").unwrap();
-/// println!("Voice Code: {}", voice_code.voice_code); // expects 8079
-/// println!("Major: {}", voice_code.voice_code_major); // expects 80
-/// println!("Minor: {}", voice_code.voice_code_minor); // expects 79
+/// let voice_code = voicecode::HashVoiceCode::new("12345678901244", "LOT123", "01", "02", "03").unwrap();
+/// println!("Voice Code: {}", voice_code.voice_code); // expects 6991
+/// println!("Major: {}", voice_code.voice_code_major); // expects 69
+/// println!("Minor: {}", voice_code.voice_code_minor); // expects 91
 /// ```
 pub struct HashVoiceCode {
     pub hash_text: String,
@@ -36,10 +36,10 @@ impl HashVoiceCode {
     /// Create a new HashVoiceCode struct with date mm, dd and yy as strings
     /// # Example
     /// ```
-    /// let voice_code = voicecode::HashVoiceCode::new("123456789012", "LOT123", "01", "02", "03").unwrap();
-    /// println!("Voice Code: {}", voice_code.voice_code); // expects 8079
-    /// println!("Major: {}", voice_code.voice_code_major); // expects 80
-    /// println!("Minor: {}", voice_code.voice_code_minor); // expects 79
+    /// let voice_code = voicecode::HashVoiceCode::new("12345678901244", "LOT123", "01", "02", "03").unwrap();
+    /// println!("Voice Code: {}", voice_code.voice_code); // expects 6991
+    /// println!("Major: {}", voice_code.voice_code_major); // expects 69
+    /// println!("Minor: {}", voice_code.voice_code_minor); // expects 91
     /// ```
     pub fn new(gtin: &str, lot: &str, pack_date_mm: &str, pack_date_dd: &str, pack_date_yy: &str) -> Result<Self, &'static str> {
         if !pack_date_mm.chars().all(char::is_numeric) {
@@ -52,6 +52,10 @@ impl HashVoiceCode {
 
         if !pack_date_yy.chars().all(char::is_numeric) {
             return Err("Date component YY must be numeric");
+        }
+
+        if !gtin.chars().all(char::is_numeric) || gtin.len() != 14 {
+            return Err("GTIN must be numeric 14 digits");
         }
 
         let mm = format!("{:0>2}", pack_date_mm);
@@ -83,10 +87,10 @@ impl HashVoiceCode {
     /// # Example
     /// ```
     /// let pack_date = chrono::NaiveDate::from_ymd(2003, 1, 2);
-    /// let voice_code = voicecode::HashVoiceCode::new_naive("123456789012", "LOT123", pack_date).unwrap();
-    /// println!("Voice Code: {}", voice_code.voice_code); // expects 8079
-    /// println!("Major: {}", voice_code.voice_code_major); // expects 80
-    /// println!("Minor: {}", voice_code.voice_code_minor); // expects 79
+    /// let voice_code = voicecode::HashVoiceCode::new_naive("12345678901244", "LOT123", pack_date).unwrap();
+    /// println!("Voice Code: {}", voice_code.voice_code); // expects 6991
+    /// println!("Major: {}", voice_code.voice_code_major); // expects 69
+    /// println!("Minor: {}", voice_code.voice_code_minor); // expects 91
     /// ```
     #[cfg(feature = "naive_date")]
     #[allow(dead_code)]

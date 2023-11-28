@@ -1,6 +1,6 @@
 # voicecode
 
-Represents a voice code hasher for Produce Traceability Initiative (PTI)
+voice code hasher for Produce Traceability Initiative (PTI) labels
 
 Reference: https://producetraceability.org/voice-pick-code-calculator/
 
