@@ -34,6 +34,14 @@ pub struct HashVoiceCode {
 impl HashVoiceCode {
     #[allow(dead_code)]
     /// Create a new HashVoiceCode struct with date mm, dd and yy as strings
+    ///
+    /// # Note
+    /// date string components outside normal bounds will
+    /// hash and not be valid for the PTI label format
+    /// ex mm="99" dd="99" yy="99" is valid and is not a real date
+    ///
+    /// this method assumes you've provided valid date parts
+    ///
     /// # Example
     /// ```
     /// let voice_code = voicecode::HashVoiceCode::new("12345678901244", "LOT123", "01", "02", "03").unwrap();
@@ -62,20 +70,26 @@ impl HashVoiceCode {
         let dd = format!("{:0>2}", pack_date_dd);
         let yy = format!("{:0>2}", pack_date_yy);
 
-        let parsed_date = format!("{}{}{}", yy, mm, dd);
-
-        if parsed_date.len() != 6 || parsed_date.parse::<u32>().is_err() {
-            return Err("Invalid date format");
+        if mm.len() != 2 {
+            return Err("Invalid mm date format");
         }
 
-        let hash_text = format!("{}{}{}", gtin, lot, parsed_date);
+        if dd.len() != 2 {
+            return Err("Invalid dd date format");
+        }
+
+        if yy.len() != 2 {
+            return Err("Invalid yy date format");
+        }
+
+        let hash_text = format!("{}{}{}{}{}", gtin, lot, pack_date_yy, pack_date_mm, pack_date_dd);
         let voice_code = generate_voice_code_hash(&hash_text);
 
         Ok(HashVoiceCode {
             hash_text,
             gtin: gtin.to_string(),
             lot: lot.to_string(),
-            pack_date: parsed_date,
+            pack_date: format!("{}{}{}", yy, mm, dd),
             voice_code: voice_code.clone(),
             voice_code_major: voice_code[..2].to_string(),
             voice_code_minor: voice_code[2..].to_string(),
@@ -84,6 +98,11 @@ impl HashVoiceCode {
 
     /// Create a new HashVoiceCode struct with date mm, dd and yy provided from NaiveDate
     /// if your unsure of the date format you should use this method
+    ///
+    /// Caller should provide format!("{}{}{}{}{}", gtin, lot, pack_date_yy, pack_date_mm, pack_date_dd);
+    ///
+    /// pack_date_XX is a two digit string for month, day and year
+    ///
     /// # Example
     /// ```
     /// let pack_date = chrono::NaiveDate::from_ymd(2003, 1, 2);
@@ -103,7 +122,14 @@ impl HashVoiceCode {
     }
 }
 
-fn generate_voice_code_hash(input: &str) -> String {
+///
+/// Generate a voice code hash from a string
+/// # Example
+/// ```
+/// let voice_code = voicecode::generate_voice_code_hash("12345678901244LOT123030102");
+/// println!("Voice Code: {}", voice_code); // expects 6991
+/// ```
+pub fn generate_voice_code_hash(input: &str) -> String {
     let mut output: u16 = 0;
     for ch in input.chars() {
         output = (output >> 8) ^ HASH_VOICE_CHECKSUM_HASH_T[((output ^ (ch as u16)) % 256) as usize];
@@ -127,6 +153,13 @@ mod tests {
             }
         }
         NaiveDate::parse_from_str(input, "")
+    }
+
+    #[test]
+    fn test_hash_voice_code_string() {
+        // raw hash test
+        let voice_code = generate_voice_code_hash("12345678901244LOT123030102");
+        assert_eq!(voice_code, "6991");
     }
 
     #[cfg(feature = "naive_date")]
