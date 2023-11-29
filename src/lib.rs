@@ -1,7 +1,9 @@
+#![deny(const_item_mutation)]
+
 use chrono::NaiveDate;
 use regex::Regex;
 
-const HASH_VOICE_CHECKSUM_HASH_T: [u16; 256] = [
+pub const HASH_VOICE_CHECKSUM_HASH_T: [u16; 256] = [
     0x0000, 0xc0c1, 0xc181, 0x0140, 0xc301, 0x03c0, 0x0280, 0xc241, 0xc601, 0x06c0, 0x0780, 0xc741, 0x0500, 0xc5c1, 0xc481, 0x0440,
     0xcc01, 0x0cc0, 0x0d80, 0xcd41, 0x0f00, 0xcfc1, 0xce81, 0x0e40, 0x0a00, 0xcac1, 0xcb81, 0x0b40, 0xc901, 0x09c0, 0x0880, 0xc841,
     0xd801, 0x18c0, 0x1980, 0xd941, 0x1b00, 0xdbc1, 0xda81, 0x1a40, 0x1e00, 0xdec1, 0xdf81, 0x1f40, 0xdd01, 0x1dc0, 0x1c80, 0xdc41,
@@ -207,6 +209,42 @@ impl HashVoiceCode {
         format!("{:04}", output % 10000)
     }
 }
+
+///
+/// Generate CRC look up table similar to HASH_VOICE_CHECKSUM_HASH_T
+///
+/// 40961 is the polynomial used by the PTI example implementation
+///
+/// this is only for reference to show where HASH_VOICE_CHECKSUM_HASH_T
+/// came from
+///
+/// # Example
+/// ```
+/// let crc_lut = voicecode::create_crc_lut(40961);
+/// for i in 0..256 {
+///    assert_eq!(crc_lut[i], voicecode::HASH_VOICE_CHECKSUM_HASH_T[i]);
+/// }
+pub fn create_crc_lut(polynomial: u16) -> [u16; 256] {
+    let mut lut = [0u16; 256];
+
+    for i in 0..256 {
+        let mut value: u16 = 0;
+        let mut temp: u16 = i as u16;
+
+        for _ in 0..8 {
+            if (value ^ temp) & 1 != 0 {
+                value = (value >> 1) ^ polynomial;
+            } else {
+                value >>= 1;
+            }
+            temp >>= 1;
+        }
+        lut[i] = value;
+    }
+
+    lut
+}
+
 
 #[cfg(test)]
 mod tests {
