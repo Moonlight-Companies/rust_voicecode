@@ -261,6 +261,24 @@ mod tests {
     }
 
     #[test]
+    fn test_chrono() {
+        if let Some(date) = chrono::NaiveDate::from_ymd_opt(2003, 1, 2) {
+            let voice_code = HashVoiceCode::new_naive("123456789012", "LOT123", date);
+            match voice_code {
+                Ok(voice_code) => {
+                    println!("Voice Code: {}", voice_code.voice_code); // expects 6991
+                    println!("Minor: {}", voice_code.voice_code_minor); // expects 69
+                    println!("Major: {}", voice_code.voice_code_major); // expects 91
+                }
+                Err(e) => {
+                    println!("Error: {}", e);
+                    assert!(false);
+                }
+            }
+        }
+    }
+
+    #[test]
     fn test_hash_voice_code_string() {
         // raw hash test
         let voice_code = HashVoiceCode::generate_voice_code_hash("12345678901244LOT123030102");
