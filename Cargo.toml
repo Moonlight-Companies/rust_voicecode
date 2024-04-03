@@ -1,6 +1,6 @@
 [package]
 name = "voicecode"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Chris Given <chris.given@moonlightcompanies.com>"]
 description = "VoiceCode calculator for Produce Traceability Initiative"
 license = "MIT"
