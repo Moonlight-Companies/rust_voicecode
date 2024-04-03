@@ -5,6 +5,7 @@ authors = ["Chris Given <chris.given@moonlightcompanies.com>"]
 description = "VoiceCode calculator for Produce Traceability Initiative"
 license = "MIT"
 edition = "2021"
+repository = "https://github.com/Moonlight-Companies/rust_voicecode"
 
 [dependencies]
 chrono = "0.4.31"
