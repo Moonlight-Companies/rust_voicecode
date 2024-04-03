@@ -14,16 +14,16 @@ if your Lot Code could be mixed case.
 
 ```rust
 let voice_code = HashVoiceCode::new("123456789012", "LOT123", "01", "02", "03").unwrap();
-println!("Voice Code: {}", voice_code.voice_code); // expects 8079
-println!("Minor: {}", voice_code.voice_code_minor); // expects 80
-println!("Major: {}", voice_code.voice_code_major); // expects 79
+println!("Voice Code: {}", voice_code.voice_code); // expects 8812
+println!("Minor: {}", voice_code.voice_code_minor); // expects 88
+println!("Major: {}", voice_code.voice_code_major); // expects 12
 ```
 
 ```rust
 if let Some(date) = chrono::NaiveDate::from_ymd_opt(2003, 1, 2) {
     let voice_code = HashVoiceCode::new_naive("123456789012", "LOT123", date);
-    println!("Voice Code: {}", voice_code.voice_code); // expects 8079
-    println!("Minor: {}", voice_code.voice_code_minor); // expects 80
-    println!("Major: {}", voice_code.voice_code_major); // expects 79
+    println!("Voice Code: {}", voice_code.voice_code); // expects 8812
+    println!("Minor: {}", voice_code.voice_code_minor); // expects 88
+    println!("Major: {}", voice_code.voice_code_major); // expects 12
 }
 ```
